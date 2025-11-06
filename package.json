@@ -1,0 +1,19 @@
+{
+  "name": "mdproject",
+  "version": "1.0.0",
+  "description": "Plataforma de documentação em Markdown estilo Notion",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install-all": "npm install && npm install --workspace=backend && npm install --workspace=frontend",
+    "dev": "npm run dev --workspace=backend & npm start --workspace=frontend",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "start": "npm start --workspace=backend"
+  },
+  "dependencies": {
+    "react-icons": "^5.5.0"
+  }
+}
