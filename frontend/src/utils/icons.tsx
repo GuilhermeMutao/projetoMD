@@ -37,6 +37,12 @@ import {
   FaCopy,
   FaLink,
   FaShare,
+  FaHeading,
+  FaCode,
+  FaTable,
+  FaFileCode,
+  FaBold,
+  FaItalic,
 } from 'react-icons/fa';
 
 export const Icons = {
@@ -52,6 +58,7 @@ export const Icons = {
   Search: FaSearch,
   Settings: FaCog,
   Close: FaTimes,
+  Times: FaTimes,
   Check: FaCheck,
 
   // Favoritos
@@ -93,6 +100,16 @@ export const Icons = {
   Copy: FaCopy,
   Link: FaLink,
   Share: FaShare,
+
+  // Markdown Editor
+  Heading: FaHeading,
+  Heading2: FaHeading,
+  Heading3: FaHeading,
+  Bold: FaBold,
+  Italic: FaItalic,
+  Code: FaCode,
+  Table: FaTable,
+  FileCode: FaFileCode,
 };
 
 // Componente para renderizar ícones com tamanho e cor padrão

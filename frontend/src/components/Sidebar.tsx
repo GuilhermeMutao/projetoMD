@@ -12,6 +12,7 @@ interface SidebarProps {
   onOpenFolderManager?: () => void;
   onBackToGallery?: () => void;
   onMoveDocumentToFolder?: (doc: Document) => void;
+  onToggleTheme?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -23,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenFolderManager,
   onBackToGallery,
   onMoveDocumentToFolder,
+  onToggleTheme,
 }) => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -407,7 +409,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             transition: 'transform 0.2s',
                           }}
                         />
-                        <Icons.FolderOpen size={12} />
+                        {isExpanded ? <Icons.FolderOpen size={12} /> : <Icons.Folder size={12} />}
                         <span
                           style={{
                             flex: 1,
@@ -502,6 +504,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )}
               </div>
             )}
+            <button
+              onClick={onCreateNew}
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                backgroundColor: themeColors.primary,
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.9';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <Icons.Plus size={12} />
+              <span>Novo</span>
+            </button>
           </div>
         )}
 
@@ -562,13 +594,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
         <button
-          onClick={onCreateNew}
+          onClick={onToggleTheme}
           style={{
             width: '100%',
             padding: '8px 10px',
-            backgroundColor: themeColors.primary,
-            color: 'white',
-            border: 'none',
+            backgroundColor: themeColors.hover,
+            color: themeColors.text,
+            border: `1px solid ${themeColors.border}`,
             borderRadius: '6px',
             cursor: 'pointer',
             fontSize: '11px',
@@ -578,19 +610,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             gap: '6px',
+            marginBottom: '8px',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '0.9';
-            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.opacity = '0.8';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.opacity = '1';
-            e.currentTarget.style.transform = 'translateY(0)';
           }}
+          title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
         >
-          <Icons.Plus size={12} />
-          <span>Novo</span>
+          {theme === 'light' ? (
+            <>
+              <Icons.Moon size={12} />
+              <span>Escuro</span>
+            </>
+          ) : (
+            <>
+              <Icons.Sun size={12} />
+              <span>Claro</span>
+            </>
+          )}
         </button>
+
       </div>
     </div>
   );

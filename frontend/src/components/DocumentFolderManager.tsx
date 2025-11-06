@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Folder, StorageService } from '../utils/storage';
 import { getTheme, Theme } from '../utils/theme';
+import { Icons } from '../utils/icons';
 
 interface DocumentFolderManagerProps {
   isOpen: boolean;
@@ -70,9 +71,13 @@ export const DocumentFolderManager: React.FC<DocumentFolderManagerProps> = ({
             color: themeColors.text,
             fontSize: '16px',
             fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
           }}
         >
-          📁 Mover Documento
+          <Icons.Folder size={16} />
+          <span>Mover Documento</span>
         </h2>
 
         <p
@@ -119,9 +124,9 @@ export const DocumentFolderManager: React.FC<DocumentFolderManagerProps> = ({
               }
             }}
           >
-            <span>📂</span>
+            <Icons.FolderOpen size={14} />
             <span>Sem Pasta (Raiz)</span>
-            {!selectedFolderId && <span style={{ marginLeft: 'auto' }}>✓</span>}
+            {!selectedFolderId && <Icons.Check size={14} style={{ marginLeft: 'auto' }} />}
           </div>
 
           {/* Pastas */}
@@ -151,9 +156,9 @@ export const DocumentFolderManager: React.FC<DocumentFolderManagerProps> = ({
                 }
               }}
             >
-              <span>📁</span>
+              <Icons.Folder size={14} />
               <span>{folder.name}</span>
-              {selectedFolderId === folder.id && <span style={{ marginLeft: 'auto' }}>✓</span>}
+              {selectedFolderId === folder.id && <Icons.Check size={14} style={{ marginLeft: 'auto' }} />}
             </div>
           ))}
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getTheme, Theme } from '../utils/theme';
+import { Icons } from '../utils/icons';
 
 interface MarkdownEditorProps {
   value: string;
@@ -16,6 +17,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showTableModal, setShowTableModal] = useState(false);
+  const historyRef = useRef<string[]>([value]);
+  const historyIndexRef = useRef<number>(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const themeColors = getTheme(theme);
 
@@ -27,6 +30,16 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Atualizar história quando valor muda (não de undo/redo)
+  useEffect(() => {
+    if (value !== historyRef.current[historyIndexRef.current]) {
+      // Remover histórico futuro se estávamos em ponto intermediário
+      historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+      historyRef.current.push(value);
+      historyIndexRef.current = historyRef.current.length - 1;
+    }
+  }, [value]);
 
   const insertText = (before: string, after: string = '') => {
     const textarea = textareaRef.current;
@@ -45,6 +58,71 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       textarea.selectionEnd = start + before.length + selected.length;
     }, 0);
   };
+
+  const handleUndo = () => {
+    if (historyIndexRef.current > 0) {
+      historyIndexRef.current--;
+      onChange(historyRef.current[historyIndexRef.current]);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      historyIndexRef.current++;
+      onChange(historyRef.current[historyIndexRef.current]);
+    }
+  };
+
+  // Atalhos de teclado
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Apenas funciona no textarea
+      if (e.target !== textareaRef.current) return;
+
+      // Ctrl+Z ou Cmd+Z para Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+        return;
+      }
+      // Ctrl+Y ou Cmd+Shift+Z para Redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
+      // Ctrl+B para Bold
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        insertText('**', '**');
+        return;
+      }
+      // Ctrl+I para Italic
+      if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+        e.preventDefault();
+        insertText('_', '_');
+        return;
+      }
+      // Ctrl+` ou Ctrl+E para Code inline
+      if ((e.ctrlKey || e.metaKey) && (e.key === '`' || e.code === 'Backquote' || e.key === 'e')) {
+        e.preventDefault();
+        insertText('`', '`');
+        return;
+      }
+      // Ctrl+S para Save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        onSave?.();
+        return;
+      }
+    };
+
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.addEventListener('keydown', handleKeyDown);
+      return () => textarea.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [onSave]);
 
   const insertTable = (rows: number, cols: number) => {
     let table = '\n| ';
@@ -68,31 +146,37 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     setShowTableModal(false);
   };
 
-  const ToolbarButton = ({ icon, label, onClick }: any) => (
+  const ToolbarButton = ({ icon, label, onClick, disabled = false, title }: any) => (
     <button
       onClick={onClick}
-      title={label}
+      disabled={disabled}
+      title={title || label}
       style={{
         padding: '6px 10px',
-        backgroundColor: themeColors.hover,
-        color: themeColors.text,
+        backgroundColor: disabled ? themeColors.border : themeColors.hover,
+        color: disabled ? themeColors.textTertiary : themeColors.text,
         border: `1px solid ${themeColors.border}`,
         borderRadius: '4px',
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
         fontSize: '12px',
         display: 'flex',
         alignItems: 'center',
         gap: '4px',
         transition: 'all 0.2s',
         whiteSpace: 'nowrap',
+        opacity: disabled ? 0.5 : 1,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = themeColors.primary;
-        e.currentTarget.style.color = 'white';
+        if (!disabled) {
+          e.currentTarget.style.backgroundColor = themeColors.primary;
+          e.currentTarget.style.color = 'white';
+        }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = themeColors.hover;
-        e.currentTarget.style.color = themeColors.text;
+        if (!disabled) {
+          e.currentTarget.style.backgroundColor = themeColors.hover;
+          e.currentTarget.style.color = themeColors.text;
+        }
       }}
     >
       {icon} {!isMobile && label}
@@ -122,28 +206,43 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         }}
       >
         <ToolbarButton
-          icon="💾"
+          icon={<Icons.Download size={14} />}
           label="Salvar"
+          title="Salvar (Ctrl+S)"
           onClick={onSave}
+        />
+        <ToolbarButton
+          icon={<Icons.ArrowLeft size={14} />}
+          label="Desfazer"
+          title="Desfazer (Ctrl+Z)"
+          onClick={handleUndo}
+          disabled={historyIndexRef.current === 0}
+        />
+        <ToolbarButton
+          icon={<Icons.ArrowRight size={14} />}
+          label="Refazer"
+          title="Refazer (Ctrl+Y)"
+          onClick={handleRedo}
+          disabled={historyIndexRef.current === historyRef.current.length - 1}
         />
         <div style={{ width: '1px', height: '24px', backgroundColor: themeColors.border }} />
         
-        <ToolbarButton icon="📝" label="H1" onClick={() => insertText('# ', '')} />
-        <ToolbarButton icon="📄" label="H2" onClick={() => insertText('## ', '')} />
-        <ToolbarButton icon="📋" label="H3" onClick={() => insertText('### ', '')} />
+        <ToolbarButton icon={<Icons.Heading size={14} />} label="H1" title="Título 1 (#)" onClick={() => insertText('# ', '')} />
+        <ToolbarButton icon={<Icons.Heading2 size={14} />} label="H2" title="Título 2 (##)" onClick={() => insertText('## ', '')} />
+        <ToolbarButton icon={<Icons.Heading3 size={14} />} label="H3" title="Título 3 (###)" onClick={() => insertText('### ', '')} />
         
         <div style={{ width: '1px', height: '24px', backgroundColor: themeColors.border }} />
         
-        <ToolbarButton icon="**B**" label="Bold" onClick={() => insertText('**', '**')} />
-        <ToolbarButton icon="*I*" label="Italic" onClick={() => insertText('*', '*')} />
-        <ToolbarButton icon="`C`" label="Code" onClick={() => insertText('`', '`')} />
+        <ToolbarButton icon={<Icons.Bold size={14} />} label="Negrito" title="Negrito (Ctrl+B)" onClick={() => insertText('**', '**')} />
+        <ToolbarButton icon={<Icons.Italic size={14} />} label="Itálico" title="Itálico (Ctrl+I)" onClick={() => insertText('_', '_')} />
+        <ToolbarButton icon={<Icons.Code size={14} />} label="Código" title="Código inline (Ctrl+E ou Ctrl+`)" onClick={() => insertText('`', '`')} />
         
         <div style={{ width: '1px', height: '24px', backgroundColor: themeColors.border }} />
         
-        <ToolbarButton icon="📋" label="Código" onClick={() => insertText('```\n', '\n```')} />
-        <ToolbarButton icon="📊" label="Tabela" onClick={() => setShowTableModal(true)} />
-        <ToolbarButton icon="• " label="Lista" onClick={() => insertText('- ', '')} />
-        <ToolbarButton icon="🔗" label="Link" onClick={() => insertText('[', '](url)')} />
+        <ToolbarButton icon={<Icons.FileCode size={14} />} label="Bloco" title="Bloco de Código" onClick={() => insertText('```\n', '\n```')} />
+        <ToolbarButton icon={<Icons.Table size={14} />} label="Tabela" title="Inserir Tabela" onClick={() => setShowTableModal(true)} />
+        <ToolbarButton icon={<Icons.List size={14} />} label="Lista" title="Inserir Lista" onClick={() => insertText('- ', '')} />
+        <ToolbarButton icon={<Icons.Link size={14} />} label="Link" title="Inserir Link" onClick={() => insertText('[', '](url)')} />
       </div>
 
       {/* Table Modal */}

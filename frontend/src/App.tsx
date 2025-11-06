@@ -8,13 +8,13 @@ import { FolderManager } from './components/FolderManager';
 import { DocumentFolderManager } from './components/DocumentFolderManager';
 import { Document, StorageService, Folder } from './utils/storage';
 import { getTheme, getThemePreference, saveThemePreference, Theme } from './utils/theme';
+import { Icons } from './utils/icons';
 
 function App() {
   const [currentDocument, setCurrentDocument] = useState<Document | null>(null);
   const [content, setContent] = useState('');
   const [isEditorMode, setIsEditorMode] = useState(true);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [showSplitView, setShowSplitView] = useState(window.innerWidth >= 1024);
+  const [showSplitView, setShowSplitView] = useState(true);
   const [showNewModal, setShowNewModal] = useState(false);
   const [showFolderManager, setShowFolderManager] = useState(false);
   const [showDocumentFolderManager, setShowDocumentFolderManager] = useState(false);
@@ -23,19 +23,8 @@ function App() {
   const [theme, setTheme] = useState<Theme>(getThemePreference());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [showDocumentsMenu, setShowDocumentsMenu] = useState(false);
   const autoSaveTimeoutRef = React.useRef<NodeJS.Timeout>();
   const themeColors = getTheme(theme);
-
-  // Detectar tamanho de tela
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      setShowSplitView(window.innerWidth >= 1024);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Carregar documentos e pastas
   useEffect(() => {
@@ -63,7 +52,7 @@ function App() {
     if (currentDocument && content !== currentDocument.content) {
       setSaveStatus('💾 Salvando...');
       if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
-      
+
       autoSaveTimeoutRef.current = setTimeout(() => {
         const updated: Document = {
           ...currentDocument,
@@ -134,7 +123,7 @@ function App() {
       {showFolderManager && (
         <FolderManager
           onClose={() => setShowFolderManager(false)}
-          onSelectFolder={() => {}}
+          onSelectFolder={() => { }}
           theme={theme}
         />
       )}
@@ -156,56 +145,9 @@ function App() {
         />
       )}
 
-      {/* Header Mobile */}
-      {isMobile && (
-        <div
-          style={{
-            padding: '12px 15px',
-            backgroundColor: themeColors.surface,
-            borderBottom: `1px solid ${themeColors.border}`,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '10px',
-          }}
-        >
-          <button
-            onClick={() => setIsEditorMode(!isEditorMode)}
-            style={{
-              padding: '8px 12px',
-              backgroundColor: themeColors.primary,
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-            }}
-            title={isEditorMode ? 'Ver preview' : 'Editar'}
-          >
-            {isEditorMode ? '👁️' : '✏️'}
-          </button>
-          <h1 style={{ fontSize: '16px', color: themeColors.text, margin: 0, flex: 1, textAlign: 'center' }}>📝 MDProject</h1>
-          <button
-            onClick={handleToggleTheme}
-            style={{
-              padding: '8px 12px',
-              backgroundColor: themeColors.hover,
-              color: themeColors.text,
-              border: `1px solid ${themeColors.border}`,
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
-        </div>
-      )}
-
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Sidebar Desktop - Sempre visível quando não colapsado */}
-        {!isMobile && !sidebarCollapsed && (
+        {/* Sidebar */}
+        {!sidebarCollapsed && (
           <div
             style={{
               width: '320px',
@@ -217,7 +159,7 @@ function App() {
             <Sidebar
               onSelectDocument={handleSelectDocument}
               onCreateNew={() => setShowNewModal(true)}
-              isMobile={isMobile}
+              isMobile={false}
               theme={theme}
               currentDocumentId={currentDocument?.id}
               onOpenFolderManager={() => setShowFolderManager(true)}
@@ -226,106 +168,90 @@ function App() {
                 setDocumentToMove(doc);
                 setShowDocumentFolderManager(true);
               }}
+              onToggleTheme={handleToggleTheme}
             />
           </div>
         )}
 
-        {/* Main Content - Documento ou Galeria */}
+        {/* Main Content */}
         {currentDocument ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            {/* Header Desktop - Responsivo */}
-            {!isMobile && (
-              <div
-                style={{
-                  padding: '10px 16px',
-                  borderBottom: `1px solid ${themeColors.border}`,
-                  backgroundColor: themeColors.surface,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                  minHeight: '44px',
-                }}
-              >
-                {/* Esquerda: Sidebar Toggle + Título Clicável */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
-                  <button
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    style={{
-                      padding: '6px 10px',
-                      backgroundColor: themeColors.hover,
-                      color: themeColors.text,
-                      border: `1px solid ${themeColors.border}`,
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                    }}
-                    title={sidebarCollapsed ? 'Mostrar' : 'Ocultar'}
-                  >
-                    {sidebarCollapsed ? '→' : '←'}
-                  </button>
+            {/* Header - Limpo e Organizado */}
+            <div
+              style={{
+                padding: '10px 16px',
+                borderBottom: `1px solid ${themeColors.border}`,
+                backgroundColor: themeColors.surface,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '12px',
+                minHeight: '44px',
+              }}
+            >
+              {/* Esquerda: Toggle Sidebar + Título */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  style={{
+                    padding: '6px 10px',
+                    backgroundColor: themeColors.hover,
+                    color: themeColors.text,
+                    border: `1px solid ${themeColors.border}`,
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title={sidebarCollapsed ? 'Mostrar' : 'Ocultar'}
+                >
+                  {sidebarCollapsed ? <Icons.ChevronRight size={12} /> : <Icons.ChevronLeft size={12} />}
+                </button>
 
-                  <button
-                    onClick={() => setCurrentDocument(null)}
-                    style={{
-                      fontSize: '16px',
-                      color: themeColors.text,
-                      margin: 0,
-                      flex: 1,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      padding: '6px 8px',
-                      borderRadius: '4px',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = themeColors.hover;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                    title="Clique para voltar à galeria"
-                  >
-                    <span style={{ fontWeight: 600 }}>📚 {currentDocument.title}</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => setCurrentDocument(null)}
+                  style={{
+                    fontSize: '14px',
+                    color: themeColors.text,
+                    margin: 0,
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    padding: '6px 8px',
+                    borderRadius: '4px',
+                    transition: 'all 0.2s',
+                    fontWeight: 600,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = themeColors.hover;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                  title="Clique para voltar à galeria"
+                >
+                  {currentDocument.title}
+                </button>
+              </div>
 
-                {/* Centro: Status */}
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  {saveStatus && (
-                    <span style={{ fontSize: '10px', color: themeColors.success, fontWeight: '600', whiteSpace: 'nowrap' }}>
-                      {saveStatus}
-                    </span>
-                  )}
-                </div>
+              {/* Direita: Status + Modo Editor + Split View */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
+                {saveStatus && (
+                  <span style={{ fontSize: '11px', color: themeColors.success, fontWeight: '600', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {saveStatus.includes('Salvo') && <Icons.Check size={12} />}
+                    {saveStatus.includes('Salvando') && <Icons.FileAlt size={12} />}
+                    {saveStatus.split(' ')[1]}
+                  </span>
+                )}
 
-                {/* Direita: Ações */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', position: 'relative' }}>
-                  <button
-                    onClick={() => setIsEditorMode(!isEditorMode)}
-                    style={{
-                      padding: '6px 10px',
-                      backgroundColor: '#9C27B0',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      whiteSpace: 'nowrap',
-                    }}
-                    title={isEditorMode ? 'Ver preview' : 'Editar'}
-                  >
-                    {isEditorMode ? '👁️ Preview' : '✏️ Editor'}
-                  </button>
+                {isEditorMode && (
                   <button
                     onClick={() => setShowSplitView(!showSplitView)}
                     style={{
@@ -337,257 +263,67 @@ function App() {
                       cursor: 'pointer',
                       fontSize: '11px',
                       fontWeight: '600',
-                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                     title={showSplitView ? 'Desativar split view' : 'Ativar split view'}
                   >
-                    {showSplitView ? '🔀' : '📄'}
-                  </button>
-
-                  {/* Menu Flutuante */}
-                  <div style={{ position: 'relative' }}>
-                    <button
-                      onClick={() => setShowDocumentsMenu(!showDocumentsMenu)}
-                      style={{
-                        padding: '6px 10px',
-                        backgroundColor: themeColors.hover,
-                        color: themeColors.text,
-                        border: `1px solid ${themeColors.border}`,
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        whiteSpace: 'nowrap',
-                      }}
-                      title="Menu"
-                    >
-                      ☰
-                    </button>
-
-                    {showDocumentsMenu && (
+                    {showSplitView ? (
                       <>
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '100%',
-                            right: 0,
-                            marginTop: '4px',
-                            backgroundColor: themeColors.surface,
-                            border: `1px solid ${themeColors.border}`,
-                            borderRadius: '4px',
-                            boxShadow: `0 4px 12px ${themeColors.shadow}`,
-                            zIndex: 1000,
-                            minWidth: '200px',
-                            overflowY: 'auto',
-                          }}
-                        >
-                          <div
-                            onClick={() => {
-                              setShowFolderManager(true);
-                              setShowDocumentsMenu(false);
-                            }}
-                            style={{
-                              padding: '10px 12px',
-                              borderBottom: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer',
-                              color: themeColors.text,
-                              fontSize: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = themeColors.hover;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
-                          >
-                            <span>📁</span>
-                            <span>Gerenciar Pastas</span>
-                          </div>
-
-                          <div
-                            onClick={() => {
-                              setShowNewModal(true);
-                              setShowDocumentsMenu(false);
-                            }}
-                            style={{
-                              padding: '10px 12px',
-                              borderBottom: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer',
-                              color: themeColors.text,
-                              fontSize: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = themeColors.hover;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
-                          >
-                            <span>➕</span>
-                            <span>Novo Documento</span>
-                          </div>
-
-                          <div
-                            onClick={() => {
-                              handleToggleTheme();
-                              setShowDocumentsMenu(false);
-                            }}
-                            style={{
-                              padding: '10px 12px',
-                              borderBottom: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer',
-                              color: themeColors.text,
-                              fontSize: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = themeColors.hover;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
-                          >
-                            <span>{theme === 'light' ? '🌙' : '☀️'}</span>
-                            <span>Tema {theme === 'light' ? 'Escuro' : 'Claro'}</span>
-                          </div>
-
-                          <div
-                            onClick={() => {
-                              setCurrentDocument(null);
-                              setShowDocumentsMenu(false);
-                            }}
-                            style={{
-                              padding: '10px 12px',
-                              cursor: 'pointer',
-                              color: '#E53935',
-                              fontSize: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = themeColors.hover;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
-                          >
-                            <span>←</span>
-                            <span>Voltar à Galeria</span>
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            zIndex: 999,
-                          }}
-                          onClick={() => setShowDocumentsMenu(false)}
-                        />
+                        <Icons.Edit size={11} />
+                        <span>Único</span>
+                      </>
+                    ) : (
+                      <>
+                        <Icons.ChevronRight size={11} />
+                        <span>Split</span>
                       </>
                     )}
-                  </div>
+                  </button>
+                )}
 
-                  {saveStatus && (
-                    <span style={{ fontSize: '10px', color: themeColors.success, fontWeight: '600', whiteSpace: 'nowrap' }}>
-                      {saveStatus}
-                    </span>
-                  )}
-                </div>
+                {!showSplitView && (
+                  <button
+                    onClick={() => setIsEditorMode(!isEditorMode)}
+                    style={{
+                      padding: '6px 10px',
+                      backgroundColor: '#9C27B0',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title={isEditorMode ? 'Visualizar' : 'Editar'}
+                  >
+                    {isEditorMode ? (
+                      <>
+                        <Icons.Eye size={11} />
+                        <span>Visualizar</span>
+                      </>
+                    ) : (
+                      <>
+                        <Icons.Edit size={11} />
+                        <span>Editor</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
-            )}
-
-            {/* Mobile Header */}
-            {isMobile && currentDocument && (
-              <div
-                style={{
-                  padding: '10px 15px',
-                  borderBottom: `1px solid ${themeColors.border}`,
-                  backgroundColor: themeColors.surface,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '10px',
-                }}
-              >
-                <button
-                  onClick={() => setIsEditorMode(!isEditorMode)}
-                  style={{
-                    padding: '6px 10px',
-                    backgroundColor: themeColors.primary,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                  }}
-                  title={isEditorMode ? 'Ver preview' : 'Editar'}
-                >
-                  {isEditorMode ? '👁️' : '✏️'}
-                </button>
-                <button
-                  onClick={() => setCurrentDocument(null)}
-                  style={{
-                    flex: 1,
-                    fontSize: '13px',
-                    color: themeColors.text,
-                    margin: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    padding: '6px 8px',
-                    borderRadius: '4px',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = themeColors.hover;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                  title="Clique para voltar"
-                >
-                  <span style={{ fontWeight: 600 }}>📚 {currentDocument.title}</span>
-                </button>
-                <button
-                  onClick={handleToggleTheme}
-                  style={{
-                    padding: '6px 10px',
-                    backgroundColor: themeColors.hover,
-                    color: themeColors.text,
-                    border: `1px solid ${themeColors.border}`,
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                  }}
-                >
-                  {theme === 'light' ? '🌙' : '☀️'}
-                </button>
-              </div>
-            )}
+            </div>
 
             {/* Content */}
             <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
               {/* Editor Side */}
-              <div 
-                style={{ 
+              <div
+                style={{
                   flex: showSplitView ? 1 : 1,
-                  display: isEditorMode ? 'flex' : 'none',
+                  display: isEditorMode || showSplitView ? 'flex' : 'none',
                   flexDirection: 'column',
                   minWidth: 0,
                 }}
@@ -640,7 +376,7 @@ function App() {
                     flex: 1,
                     overflowY: 'auto',
                     backgroundColor: themeColors.surface,
-                    padding: isMobile ? '16px 12px' : '20px 24px',
+                    padding: '20px 24px',
                   }}
                 >
                   <div
@@ -657,64 +393,50 @@ function App() {
           </div>
         ) : (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            {/* Header Desktop na Galeria */}
-            {!isMobile && (
-              <div
-                style={{
-                  padding: '10px 16px',
-                  borderBottom: `1px solid ${themeColors.border}`,
-                  backgroundColor: themeColors.surface,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                  minHeight: '44px',
-                }}
-              >
-                {/* Esquerda: Sidebar Toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <button
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    style={{
-                      padding: '6px 10px',
-                      backgroundColor: themeColors.hover,
-                      color: themeColors.text,
-                      border: `1px solid ${themeColors.border}`,
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                    }}
-                    title={sidebarCollapsed ? 'Mostrar Sidebar' : 'Ocultar Sidebar'}
-                  >
-                    {sidebarCollapsed ? '→' : '←'}
-                  </button>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: themeColors.text }}>
-                    📚 MDProject
-                  </span>
-                </div>
-
-                {/* Direita: Tema */}
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <button
-                    onClick={handleToggleTheme}
-                    style={{
-                      padding: '6px 10px',
-                      backgroundColor: themeColors.hover,
-                      color: themeColors.text,
-                      border: `1px solid ${themeColors.border}`,
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                    }}
-                  >
-                    {theme === 'light' ? '🌙' : '☀️'}
-                  </button>
-                </div>
+            {/* Header - Galeria */}
+            <div
+              style={{
+                padding: '10px 16px',
+                borderBottom: `1px solid ${themeColors.border}`,
+                backgroundColor: themeColors.surface,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '12px',
+                minHeight: '44px',
+              }}
+            >
+              {/* Esquerda: Sidebar Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  style={{
+                    padding: '6px 10px',
+                    backgroundColor: themeColors.hover,
+                    color: themeColors.text,
+                    border: `1px solid ${themeColors.border}`,
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title={sidebarCollapsed ? 'Mostrar Sidebar' : 'Ocultar Sidebar'}
+                >
+                  {sidebarCollapsed ? (
+                    <Icons.ChevronRight size={12} />
+                  ) : (
+                    <Icons.ChevronLeft size={12} />
+                  )}
+                </button>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: themeColors.text, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Icons.Book size={14} />
+                  <span>MDProject</span>
+                </span>
               </div>
-            )}
+            </div>
 
             {/* Galeria */}
             <DocumentGallery

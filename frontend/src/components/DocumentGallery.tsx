@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Document, StorageService } from '../utils/storage';
 import { getTheme, Theme } from '../utils/theme';
+import { Icons } from '../utils/icons';
 
 interface DocumentGalleryProps {
   onSelectDocument: (doc: Document) => void;
@@ -18,6 +19,8 @@ export const DocumentGallery: React.FC<DocumentGalleryProps> = ({
   const [documents, setDocuments] = useState<Document[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [filterTab, setFilterTab] = useState<'all' | 'favorites' | 'recent'>('all');
+  const [sortBy, setSortBy] = useState<'recent' | 'alphabetic' | 'oldest'>('recent');
   const themeColors = getTheme(theme);
 
   useEffect(() => {
@@ -57,13 +60,6 @@ export const DocumentGallery: React.FC<DocumentGalleryProps> = ({
     localStorage.setItem('mdproject_favorites', JSON.stringify(Array.from(newFavorites)));
   };
 
-  const filteredDocuments = documents.filter((doc) =>
-    doc.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const favoriteDocuments = filteredDocuments.filter((doc) => favorites.has(doc.id));
-  const regularDocuments = filteredDocuments.filter((doc) => !favorites.has(doc.id));
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
@@ -74,6 +70,23 @@ export const DocumentGallery: React.FC<DocumentGalleryProps> = ({
       minute: '2-digit',
     });
   };
+
+  // Aplicar filtro
+  let displayDocuments = documents.filter((doc) =>
+    doc.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (filterTab === 'favorites') {
+    displayDocuments = displayDocuments.filter((doc) => favorites.has(doc.id));
+  }
+
+  // Aplicar ordenação
+  if (sortBy === 'alphabetic') {
+    displayDocuments.sort((a, b) => a.title.localeCompare(b.title));
+  } else if (sortBy === 'oldest') {
+    displayDocuments.sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
+  }
+  // 'recent' é o padrão (já ordenado ao carregar)
 
   return (
     <div
@@ -86,40 +99,115 @@ export const DocumentGallery: React.FC<DocumentGalleryProps> = ({
       }}
     >
 
-      {/* Search Section */}
+      {/* Header com Estatísticas */}
       <div
         style={{
-          padding: '16px 40px',
-          backgroundColor: themeColors.background,
+          padding: '20px 40px',
+          backgroundColor: themeColors.surface,
           borderBottom: `1px solid ${themeColors.border}`,
         }}
       >
-        <input
-          type="text"
-          placeholder="🔍 Buscar..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            width: '100%',
-            maxWidth: '500px',
-            padding: '10px 14px',
-            border: `2px solid ${themeColors.border}`,
-            borderRadius: '6px',
-            fontSize: '13px',
-            backgroundColor: themeColors.surface,
-            color: themeColors.text,
-            boxSizing: 'border-box',
-            transition: 'all 0.2s',
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = themeColors.primary;
-            e.currentTarget.style.boxShadow = `0 0 0 2px ${themeColors.primary}30`;
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = themeColors.border;
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <h1 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: 700, color: themeColors.text }}>
+              Meus Documentos
+            </h1>
+            <p style={{ margin: 0, fontSize: '12px', color: themeColors.textSecondary }}>
+              <Icons.File size={12} style={{ display: 'inline-block', marginRight: '4px' }} />
+              {documents.length} documento{documents.length !== 1 ? 's' : ''} • 
+              <Icons.Star size={12} style={{ display: 'inline-block', margin: '0 4px' }} />
+              {favorites.size} favorito{favorites.size !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <button
+            onClick={onCreateNew}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: themeColors.primary,
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = `0 4px 12px ${themeColors.shadow}`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <Icons.Plus size={16} />
+            <span>Novo Documento</span>
+          </button>
+        </div>
+
+        {/* Search e Filtros */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Search */}
+          <div style={{ flex: 1, minWidth: '250px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: themeColors.background, borderRadius: '6px', padding: '8px 12px', border: `1px solid ${themeColors.border}` }}>
+            <Icons.Search size={14} color={themeColors.textSecondary} />
+            <input
+              type="text"
+              placeholder="Buscar documentos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                flex: 1,
+                border: 'none',
+                backgroundColor: 'transparent',
+                color: themeColors.text,
+                fontSize: '12px',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* Filtro */}
+          <select
+            value={filterTab}
+            onChange={(e) => setFilterTab(e.target.value as any)}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: themeColors.background,
+              color: themeColors.text,
+              border: `1px solid ${themeColors.border}`,
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="all">Todos</option>
+            <option value="favorites">Favoritos</option>
+            <option value="recent">Recentes</option>
+          </select>
+
+          {/* Ordenação */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: themeColors.background,
+              color: themeColors.text,
+              border: `1px solid ${themeColors.border}`,
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="recent">Mais Recentes</option>
+            <option value="alphabetic">A-Z</option>
+            <option value="oldest">Mais Antigos</option>
+          </select>
+        </div>
       </div>
 
       {/* Grid Container */}
@@ -131,88 +219,37 @@ export const DocumentGallery: React.FC<DocumentGalleryProps> = ({
           backgroundColor: themeColors.background,
         }}
       >
-        {filteredDocuments.length > 0 ? (
+        {displayDocuments.length > 0 ? (
           <>
-            {/* Seção Favoritos */}
-            {favoriteDocuments.length > 0 && (
-              <>
-                <h2
-                  style={{
-                    fontSize: '16px',
-                    fontWeight: 700,
-                    color: themeColors.text,
-                    margin: '0 0 16px 0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  ⭐ Favoritos ({favoriteDocuments.length})
-                </h2>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                    gap: '20px',
-                    marginBottom: '40px',
-                  }}
-                >
-                  {favoriteDocuments.map((doc) => (
-                    <DocumentCard
-                      key={doc.id}
-                      doc={doc}
-                      isFavorite={favorites.has(doc.id)}
-                      onSelect={() => onSelectDocument(doc)}
-                      onDelete={(e) => handleDeleteDocument(doc.id, e)}
-                      onToggleFavorite={(e) => toggleFavorite(doc.id, e)}
-                      onMoveToFolder={onOpenFolderManager ? () => onOpenFolderManager(doc) : undefined}
-                      formatDate={formatDate}
-                      themeColors={themeColors}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+            {/* Cabeçalho de resultados */}
+            <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ margin: 0, fontSize: '12px', color: themeColors.textSecondary, fontWeight: 600 }}>
+                {displayDocuments.length} documento{displayDocuments.length !== 1 ? 's' : ''} encontrado{displayDocuments.length !== 1 ? 's' : ''}
+              </p>
+            </div>
 
-            {/* Seção Documentos Recentes */}
-            {regularDocuments.length > 0 && (
-              <>
-                <h2
-                  style={{
-                    fontSize: '16px',
-                    fontWeight: 700,
-                    color: themeColors.text,
-                    margin: '0 0 16px 0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  📄 Todos os Documentos ({regularDocuments.length})
-                </h2>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                    gap: '20px',
-                  }}
-                >
-                  {regularDocuments.map((doc) => (
-                    <DocumentCard
-                      key={doc.id}
-                      doc={doc}
-                      isFavorite={favorites.has(doc.id)}
-                      onSelect={() => onSelectDocument(doc)}
-                      onDelete={(e) => handleDeleteDocument(doc.id, e)}
-                      onToggleFavorite={(e) => toggleFavorite(doc.id, e)}
-                      onMoveToFolder={onOpenFolderManager ? () => onOpenFolderManager(doc) : undefined}
-                      formatDate={formatDate}
-                      themeColors={themeColors}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+            {/* Grid de Documentos */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: '20px',
+              }}
+            >
+              {displayDocuments.map((doc) => (
+                <DocumentCard
+                  key={doc.id}
+                  doc={doc}
+                  isFavorite={favorites.has(doc.id)}
+                  onSelect={() => onSelectDocument(doc)}
+                  onDelete={(e) => handleDeleteDocument(doc.id, e)}
+                  onToggleFavorite={(e) => toggleFavorite(doc.id, e)}
+                  onMoveToFolder={onOpenFolderManager ? () => onOpenFolderManager(doc) : undefined}
+                  formatDate={formatDate}
+                  themeColors={themeColors}
+                />
+              ))}
+            </div>
           </>
         ) : (
           <div
@@ -226,7 +263,9 @@ export const DocumentGallery: React.FC<DocumentGalleryProps> = ({
               color: themeColors.textTertiary,
             }}
           >
-            <div style={{ fontSize: '72px', marginBottom: '20px' }}>📭</div>
+            <div style={{ fontSize: '72px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icons.FileAlt size={72} />
+            </div>
             <p style={{ fontSize: '18px', marginBottom: '10px', color: themeColors.textSecondary, fontWeight: 600 }}>
               {searchTerm ? 'Nenhuma documentação encontrada' : 'Nenhuma documentação criada'}
             </p>
@@ -246,6 +285,9 @@ export const DocumentGallery: React.FC<DocumentGalleryProps> = ({
                   fontSize: '14px',
                   fontWeight: 600,
                   transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)';
@@ -256,7 +298,8 @@ export const DocumentGallery: React.FC<DocumentGalleryProps> = ({
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                ➕ Criar Documento
+                <Icons.Plus size={14} />
+                <span>Criar Documento</span>
               </button>
             )}
           </div>
@@ -317,7 +360,7 @@ const DocumentCard: React.FC<{
         position: 'relative',
       }}
     >
-      {!doc.coverImage && '📄'}
+      {!doc.coverImage && <Icons.File size={56} />}
       <button
         onClick={onToggleFavorite}
         style={{
@@ -335,6 +378,7 @@ const DocumentCard: React.FC<{
           alignItems: 'center',
           justifyContent: 'center',
           transition: 'all 0.2s',
+          color: isFavorite ? 'white' : themeColors.text,
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.1)';
@@ -344,7 +388,11 @@ const DocumentCard: React.FC<{
         }}
         title={isFavorite ? 'Remover de favoritos' : 'Adicionar aos favoritos'}
       >
-        {isFavorite ? '⭐' : '☆'}
+        {isFavorite ? (
+          <Icons.Star size={16} />
+        ) : (
+          <Icons.StarOutline size={16} />
+        )}
       </button>
     </div>
 
@@ -393,7 +441,10 @@ const DocumentCard: React.FC<{
           gap: '8px',
         }}
       >
-        <span>📅 {formatDate(doc.updatedAt)}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Icons.Calendar size={10} />
+          {formatDate(doc.updatedAt)}
+        </span>
         <div style={{ display: 'flex', gap: '4px' }}>
           {onMoveToFolder && (
             <button
@@ -412,6 +463,9 @@ const DocumentCard: React.FC<{
                 fontWeight: 600,
                 transition: 'all 0.2s',
                 whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.opacity = '0.85';
@@ -421,7 +475,7 @@ const DocumentCard: React.FC<{
               }}
               title="Mover para pasta"
             >
-              📁
+              <Icons.Folder size={9} />
             </button>
           )}
           <button
@@ -436,6 +490,9 @@ const DocumentCard: React.FC<{
               fontSize: '10px',
               fontWeight: 600,
               transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.opacity = '0.85';
@@ -443,8 +500,9 @@ const DocumentCard: React.FC<{
             onMouseLeave={(e) => {
               e.currentTarget.style.opacity = '1';
             }}
+            title="Deletar"
           >
-            🗑️
+            <Icons.Trash size={9} />
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { getTheme, Theme } from '../utils/theme';
+import { Icons } from '../utils/icons';
 
 interface NewDocumentModalProps {
   onClose: () => void;
@@ -68,7 +69,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 style={{ marginTop: 0, marginBottom: '20px', color: themeColors.text }}>
-          📄 Novo Documento
+          <Icons.File /> Novo Documento
         </h2>
 
         {/* Preview da Capa */}
@@ -130,7 +131,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
               fontWeight: 'bold',
             }}
           >
-            🖼️ {coverImage ? 'Mudar Capa' : 'Escolher Capa'}
+            {coverImage ? 'Mudar Capa' : 'Escolher Capa'}
           </button>
           {coverImage && (
             <button

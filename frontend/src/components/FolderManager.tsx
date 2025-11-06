@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Folder, StorageService } from '../utils/storage';
 import { getTheme, Theme } from '../utils/theme';
+import { Icons } from '../utils/icons';
 
 interface FolderManagerProps {
   onClose: () => void;
@@ -103,14 +104,13 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
               color: themeColors.text,
             }}
           >
-            📁 Gerenciar Pastas
+            Gerenciar Pastas
           </h2>
           <button
             onClick={onClose}
             style={{
               backgroundColor: 'transparent',
               border: 'none',
-              fontSize: '24px',
               cursor: 'pointer',
               color: themeColors.textTertiary,
               padding: 0,
@@ -119,9 +119,18 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              borderRadius: '4px',
+              transition: 'all 0.2s',
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = themeColors.hover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            title="Fechar"
           >
-            ✕
+            <Icons.Times size={18} />
           </button>
         </div>
 
@@ -174,9 +183,23 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                 cursor: 'pointer',
                 fontWeight: 600,
                 fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s',
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.9';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              title="Criar pasta"
             >
-              ➕
+              <Icons.Plus size={14} />
+              <span>Criar</span>
             </button>
           </div>
         </div>
@@ -238,10 +261,12 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                         flex: 1,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        gap: '10px',
                       }}
                     >
-                      <span style={{ fontSize: '14px' }}>📁</span>
+                      <div style={{ fontSize: '16px', color: themeColors.primary }}>
+                        <Icons.Folder size={16} />
+                      </div>
                       <div>
                         <div
                           style={{
@@ -258,7 +283,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                             color: themeColors.textTertiary,
                           }}
                         >
-                          {StorageService.getDocumentsByFolder(folder.id).length} documentos
+                          {StorageService.getDocumentsByFolder(folder.id).length} documento{StorageService.getDocumentsByFolder(folder.id).length !== 1 ? 's' : ''}
                         </div>
                       </div>
                     </div>
@@ -273,32 +298,52 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                             setEditingName(folder.name);
                           }}
                           style={{
-                            padding: '4px 8px',
-                            backgroundColor: 'transparent',
+                            padding: '6px 10px',
+                            backgroundColor: themeColors.hover,
                             border: `1px solid ${themeColors.border}`,
                             borderRadius: '4px',
                             cursor: 'pointer',
                             fontSize: '12px',
-                            color: themeColors.textSecondary,
+                            color: themeColors.text,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.opacity = '0.8';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.opacity = '1';
                           }}
                           title="Renomear"
                         >
-                          ✏️
+                          <Icons.Edit size={12} />
                         </button>
                         <button
                           onClick={() => handleDeleteFolder(folder.id)}
                           style={{
-                            padding: '4px 8px',
+                            padding: '6px 10px',
                             backgroundColor: '#E53935',
                             color: 'white',
                             border: 'none',
                             borderRadius: '4px',
                             cursor: 'pointer',
                             fontSize: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.opacity = '0.85';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.opacity = '1';
                           }}
                           title="Deletar"
                         >
-                          🗑️
+                          <Icons.Trash size={12} />
                         </button>
                       </>
                     )}
