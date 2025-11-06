@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
+import { findDocumentByUrl } from './utils/urlHelper';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { ContentEditor } from './components/ContentEditor';
 import { Sidebar } from './components/Sidebar';
@@ -12,8 +14,68 @@ import { VersioningService } from './utils/versioning';
 import { getTheme, getThemePreference, saveThemePreference, Theme } from './utils/theme';
 import { Icons } from './utils/icons';
 
-function App() {
-  const [currentDocument, setCurrentDocument] = useState<Document | null>(null);
+// Componente para lidar com rotas dinâmicas de documentos
+function DocumentRoute() {
+  const { docId } = useParams<{ docId: string }>();
+  const navigate = useNavigate();
+  const [document, setDocument] = useState<Document | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!docId) {
+      navigate('/');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const docs = StorageService.getAllDocuments();
+      const foundDoc = findDocumentByUrl(docId, docs);
+
+      if (foundDoc) {
+        console.log('✅ Documento encontrado:', foundDoc.title);
+        setDocument(foundDoc);
+      } else {
+        console.warn(`❌ Documento não encontrado: ${docId}`);
+        // Redireciona para galeria após 300ms
+        const timer = setTimeout(() => navigate('/'), 300);
+        return () => clearTimeout(timer);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar documento:', error);
+      navigate('/');
+    } finally {
+      setLoading(false);
+    }
+  }, [docId, navigate]);
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          fontSize: '16px',
+          color: '#666',
+        }}
+      >
+        ⏳ Carregando documento...
+      </div>
+    );
+  }
+
+  return <AppContent initialDocument={document} />;
+}
+
+interface AppContentProps {
+  initialDocument?: Document | null;
+}
+
+function AppContent({ initialDocument = null }: AppContentProps) {
+  const [currentDocument, setCurrentDocument] = useState<Document | null>(initialDocument || null);
   const [content, setContent] = useState('');
   const [isEditorMode, setIsEditorMode] = useState(true);
   const [showSplitView, setShowSplitView] = useState(true);
@@ -23,10 +85,13 @@ function App() {
   const [documentToMove, setDocumentToMove] = useState<Document | null>(null);
   const [saveStatus, setSaveStatus] = useState('');
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showEditTitle, setShowEditTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
   const [theme, setTheme] = useState<Theme>(getThemePreference());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
   const autoSaveTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const clickTimeoutRef = React.useRef<NodeJS.Timeout>();
   const themeColors = getTheme(theme);
 
   // Carregar documentos e pastas
@@ -120,6 +185,52 @@ function App() {
     saveThemePreference(newTheme);
   };
 
+  const handleEditTitle = (newTitle: string) => {
+    if (!currentDocument || !newTitle.trim()) return;
+
+    const updated: Document = {
+      ...currentDocument,
+      title: newTitle.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    StorageService.saveDocument(updated);
+    
+    // Criar versão com novo título
+    VersioningService.createVersion(
+      updated.id,
+      updated.content,
+      updated.title,
+      `Título alterado de "${currentDocument.title}"`
+    );
+
+    setCurrentDocument(updated);
+    setShowEditTitle(false);
+    setSaveStatus('✅ Título atualizado!');
+    setTimeout(() => setSaveStatus(''), 2000);
+  };
+
+  const handleTitleClick = () => {
+    // Limpa timeout anterior se existir
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+      // Se chegou aqui, é um duplo clique
+      if (currentDocument) {
+        setEditingTitle(currentDocument.title);
+        setShowEditTitle(true);
+      }
+      clickTimeoutRef.current = undefined;
+      return;
+    }
+
+    // Define timeout para possível duplo clique
+    clickTimeoutRef.current = setTimeout(() => {
+      // Se chegou aqui após 300ms, foi apenas um clique simples
+      // Não faz nada
+      clickTimeoutRef.current = undefined;
+    }, 300);
+  };
+
   return (
     <div
       style={{
@@ -135,6 +246,112 @@ function App() {
           onCreate={handleCreateDocument}
           theme={theme}
         />
+      )}
+
+      {showEditTitle && currentDocument && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setShowEditTitle(false)}
+        >
+          <div
+            style={{
+              backgroundColor: themeColors.surface,
+              borderRadius: '8px',
+              padding: '24px',
+              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+              maxWidth: '500px',
+              width: '90%',
+              border: `1px solid ${themeColors.border}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2
+              style={{
+                margin: '0 0 16px 0',
+                color: themeColors.text,
+                fontSize: '18px',
+              }}
+            >
+              Editar Título
+            </h2>
+
+            <input
+              type="text"
+              value={editingTitle}
+              onChange={(e) => setEditingTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleEditTitle(editingTitle);
+                }
+                if (e.key === 'Escape') {
+                  setShowEditTitle(false);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '10px',
+                marginBottom: '16px',
+                border: `1px solid ${themeColors.border}`,
+                borderRadius: '4px',
+                backgroundColor: themeColors.background,
+                color: themeColors.text,
+                fontSize: '14px',
+                boxSizing: 'border-box',
+              }}
+              autoFocus
+            />
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '10px',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <button
+                onClick={() => setShowEditTitle(false)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: themeColors.hover,
+                  color: themeColors.text,
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={() => handleEditTitle(editingTitle)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: themeColors.primary || '#007bff',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showFolderManager && (
@@ -228,7 +445,6 @@ function App() {
                 </button>
 
                 <button
-                  onClick={() => setCurrentDocument(null)}
                   style={{
                     fontSize: '14px',
                     color: themeColors.text,
@@ -245,6 +461,9 @@ function App() {
                     borderRadius: '4px',
                     transition: 'all 0.2s',
                     fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = themeColors.hover;
@@ -252,9 +471,11 @@ function App() {
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
-                  title="Clique para voltar à galeria"
+                  onClick={handleTitleClick}
+                  title="Duplo clique para editar título"
                 >
                   {currentDocument.title}
+                  <span style={{ fontSize: '12px', opacity: 0.6 }}>✎</span>
                 </button>
               </div>
 
@@ -556,6 +777,18 @@ function App() {
         )}
       </div>
     </div>
+  );
+}
+
+// Componente raiz que configura as rotas
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AppContent />} />
+        <Route path="/:docId" element={<DocumentRoute />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
