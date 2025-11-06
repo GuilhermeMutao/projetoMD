@@ -1,0 +1,55 @@
+.markdown-editor-container {
+  height: 100%;
+}
+
+.markdown-editor-container.dark .EasyMDEContainer {
+  background-color: #1a1a1a;
+  color: #f0f0f0;
+}
+
+.markdown-editor-container.light .EasyMDEContainer {
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
+.markdown-editor-container .editor-toolbar {
+  border-color: #333;
+}
+
+.markdown-editor-container .editor-toolbar button {
+  color: #f0f0f0;
+}
+
+.markdown-editor-container .editor-toolbar button:hover {
+  background-color: #333;
+}
+
+.markdown-editor-container .CodeMirror {
+  background-color: #1a1a1a;
+  color: #f0f0f0;
+  border-color: #333;
+}
+
+.markdown-editor-container.light .CodeMirror {
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
+.markdown-editor-container .editor-preview {
+  background-color: #1a1a1a;
+}
+
+.markdown-editor-container.light .editor-preview {
+  background-color: #ffffff;
+}
+
+.markdown-editor-container .editor-statusbar {
+  background-color: #1a1a1a;
+  color: #f0f0f0;
+  border-color: #333;
+}
+
+.markdown-editor-container.light .editor-statusbar {
+  background-color: #f0f0f0;
+  color: #1a1a1a;
+}
