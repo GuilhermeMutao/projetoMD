@@ -21,16 +21,26 @@ const convertMarkdownToHtml = (markdown: string, themeColors: any, theme: Theme)
     return `<pre style="background:${codeBackground};color:${codeColor};padding:15px;border-radius:5px;overflow-x:auto;margin:10px 0;word-wrap:break-word;white-space:pre-wrap;border:1px solid ${themeColors.border};"><code class="language-${lang}">${highlightedCode}</code></pre>`;
   });
 
-  // Tabelas Markdown
+  // Tabelas Markdown - melhorada
   html = html.replace(
-    /(\|.*\|)\n(\|\s*[-:| ]+\s*\|)\n((?:\|.*\|(?:\n|$))+)/g,
+    /\|(.+)\n\|[\s:|-]+\n((?:\|.+\n?)*)/g,
     (match) => {
-      const lines = match.trim().split('\n');
+      const lines = match.trim().split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) return match;
+      
+      // Verificar se é de fato uma tabela (segunda linha deve ser separador)
+      const separatorLine = lines[1];
+      if (!/^\|[\s\-|:]+\|?$/.test(separatorLine)) return match;
+      
+      // Extrair headers
       const headerCells = lines[0]
         .split('|')
         .map((cell) => cell.trim())
-        .filter((cell) => cell);
-      const bodyCells = lines.slice(2);
+        .filter((cell) => cell.length > 0);
+      
+      // Extrair linhas de corpo
+      const bodyLines = lines.slice(2).filter(line => /^\|.+\|?$/.test(line));
 
       const tableHeaderBg = theme === 'dark' ? '#1a4d7f' : '#e3f2fd';
       const tableHeaderColor = theme === 'dark' ? '#ffffff' : '#0d47a1';
@@ -45,12 +55,13 @@ const convertMarkdownToHtml = (markdown: string, themeColors: any, theme: Theme)
 
       table += '</tr></thead><tbody>';
 
-      bodyCells.forEach((line, idx) => {
-        if (line.trim()) {
-          const cells = line
-            .split('|')
-            .map((cell) => cell.trim())
-            .filter((cell) => cell);
+      bodyLines.forEach((line, idx) => {
+        const cells = line
+          .split('|')
+          .map((cell) => cell.trim())
+          .filter((cell) => cell.length > 0);
+        
+        if (cells.length > 0) {
           const rowBg = idx % 2 === 0 ? tableRowBg : 'transparent';
           table += `<tr style="background:${rowBg};">`;
           cells.forEach((cell) => {

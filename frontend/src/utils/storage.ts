@@ -61,20 +61,23 @@ export const StorageService = {
   // Salvar um documento
   saveDocument: (document: Document): void => {
     try {
+      console.log(`💾 Salvando documento: ID=${document.id}, Title="${document.title}", Content length=${document.content.length}`);
       const documents = StorageService.getAllDocuments();
       const index = documents.findIndex((doc) => doc.id === document.id);
 
       if (index >= 0) {
+        console.log(`   ✏️ Atualizando documento existente no índice ${index}`);
         documents[index] = document;
       } else {
+        console.log(`   ➕ Adicionando novo documento`);
         documents.push(document);
       }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ documents }));
-      console.log('✅ Documento salvo:', document.title);
+      console.log('✅ Documento salvo no localStorage com sucesso');
       StorageService.notifyListeners();
     } catch (error) {
-      console.error('Erro ao salvar documento:', error);
+      console.error('❌ Erro ao salvar documento:', error);
     }
   },
 

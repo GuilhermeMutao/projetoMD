@@ -76,8 +76,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // Atalhos de teclado
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Apenas funciona no textarea
-      if (e.target !== textareaRef.current) return;
+      const textarea = textareaRef.current;
+      if (!textarea || e.target !== textarea) return;
 
       // Ctrl+Z ou Cmd+Z para Undo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -103,7 +103,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         insertText('_', '_');
         return;
       }
-      // Ctrl+` ou Ctrl+E para Code inline
+      // Ctrl+E para Code inline
       if ((e.ctrlKey || e.metaKey) && (e.key === '`' || e.code === 'Backquote' || e.key === 'e')) {
         e.preventDefault();
         insertText('`', '`');
@@ -112,16 +112,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       // Ctrl+S para Save
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
+        console.log('⌨️ Ctrl+S detectado - chamando onSave()');
         onSave?.();
         return;
       }
     };
 
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.addEventListener('keydown', handleKeyDown);
-      return () => textarea.removeEventListener('keydown', handleKeyDown);
-    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onSave]);
 
   const insertTable = (rows: number, cols: number) => {

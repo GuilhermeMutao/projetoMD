@@ -6,7 +6,9 @@ import { DocumentGallery } from './components/DocumentGallery';
 import { NewDocumentModal } from './components/NewDocumentModal';
 import { FolderManager } from './components/FolderManager';
 import { DocumentFolderManager } from './components/DocumentFolderManager';
+import { VersionHistory } from './components/VersionHistory';
 import { Document, StorageService, Folder } from './utils/storage';
+import { VersioningService } from './utils/versioning';
 import { getTheme, getThemePreference, saveThemePreference, Theme } from './utils/theme';
 import { Icons } from './utils/icons';
 
@@ -20,6 +22,7 @@ function App() {
   const [showDocumentFolderManager, setShowDocumentFolderManager] = useState(false);
   const [documentToMove, setDocumentToMove] = useState<Document | null>(null);
   const [saveStatus, setSaveStatus] = useState('');
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [theme, setTheme] = useState<Theme>(getThemePreference());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -80,15 +83,29 @@ function App() {
 
   const handleSave = () => {
     if (currentDocument) {
+      console.log('📝 Salvando documento:', currentDocument.id, currentDocument.title);
       const updated: Document = {
         ...currentDocument,
         content,
         updatedAt: new Date().toISOString(),
       };
       StorageService.saveDocument(updated);
+      
+      // Criar versão
+      VersioningService.createVersion(
+        updated.id,
+        content,
+        updated.title,
+        'Manual save'
+      );
+      
       setCurrentDocument(updated);
       setSaveStatus('✅ Salvo!');
       setTimeout(() => setSaveStatus(''), 2000);
+      
+      console.log('✅ Documento salvo com sucesso');
+    } else {
+      console.warn('⚠️ Nenhum documento selecionado para salvar');
     }
   };
 
@@ -252,13 +269,68 @@ function App() {
                 )}
 
                 {isEditorMode && (
+                  <>
+                    <button
+                      onClick={() => setShowVersionHistory(true)}
+                      style={{
+                        padding: '6px 10px',
+                        backgroundColor: themeColors.hover,
+                        color: themeColors.text,
+                        border: `1px solid ${themeColors.border}`,
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                      title="Histórico de versões (Notion-like)"
+                    >
+                      <Icons.Clock size={11} />
+                      <span>Histórico</span>
+                    </button>
+
+                    <button
+                      onClick={() => setShowSplitView(!showSplitView)}
+                      style={{
+                        padding: '6px 10px',
+                        backgroundColor: showSplitView ? '#4CAF50' : themeColors.hover,
+                        color: showSplitView ? 'white' : themeColors.text,
+                        border: showSplitView ? 'none' : `1px solid ${themeColors.border}`,
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                      title={showSplitView ? 'Desativar split view' : 'Ativar split view'}
+                    >
+                      {showSplitView ? (
+                        <>
+                          <Icons.Edit size={11} />
+                          <span>Único</span>
+                        </>
+                      ) : (
+                        <>
+                          <Icons.ChevronRight size={11} />
+                          <span>Split</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+
+                {!isEditorMode && (
                   <button
-                    onClick={() => setShowSplitView(!showSplitView)}
+                    onClick={() => setShowVersionHistory(true)}
                     style={{
                       padding: '6px 10px',
-                      backgroundColor: showSplitView ? '#4CAF50' : themeColors.hover,
-                      color: showSplitView ? 'white' : themeColors.text,
-                      border: showSplitView ? 'none' : `1px solid ${themeColors.border}`,
+                      backgroundColor: themeColors.hover,
+                      color: themeColors.text,
+                      border: `1px solid ${themeColors.border}`,
                       borderRadius: '4px',
                       cursor: 'pointer',
                       fontSize: '11px',
@@ -267,19 +339,10 @@ function App() {
                       alignItems: 'center',
                       gap: '4px',
                     }}
-                    title={showSplitView ? 'Desativar split view' : 'Ativar split view'}
+                    title="Histórico de versões"
                   >
-                    {showSplitView ? (
-                      <>
-                        <Icons.Edit size={11} />
-                        <span>Único</span>
-                      </>
-                    ) : (
-                      <>
-                        <Icons.ChevronRight size={11} />
-                        <span>Split</span>
-                      </>
-                    )}
+                    <Icons.Clock size={11} />
+                    <span>Histórico</span>
                   </button>
                 )}
 
@@ -449,6 +512,47 @@ function App() {
               theme={theme}
             />
           </div>
+        )}
+
+        {/* Version History Modal */}
+        {showVersionHistory && currentDocument && (
+          <VersionHistory
+            documentId={currentDocument.id}
+            currentTitle={currentDocument.title}
+            currentContent={content}
+            onRestore={(restoredContent, restoredTitle) => {
+              // Restaurar conteúdo
+              setContent(restoredContent);
+              
+              // Atualizar documento com novo conteúdo
+              const restoredDoc: Document = {
+                ...currentDocument,
+                content: restoredContent,
+                title: restoredTitle || currentDocument.title,
+                updatedAt: new Date().toISOString(),
+              };
+              
+              // Salvar documento restaurado
+              StorageService.saveDocument(restoredDoc);
+              setCurrentDocument(restoredDoc);
+              
+              // Criar versão da restauração
+              VersioningService.createVersion(
+                restoredDoc.id,
+                restoredContent,
+                restoredTitle || currentDocument.title,
+                `Restaurado de v${VersioningService.getVersions(currentDocument.id).length - 1}`
+              );
+              
+              setSaveStatus('✅ Versão restaurada e salva!');
+              setTimeout(() => setSaveStatus(''), 2000);
+              
+              // Fechar modal
+              setShowVersionHistory(false);
+            }}
+            theme={theme}
+            onClose={() => setShowVersionHistory(false)}
+          />
         )}
       </div>
     </div>
